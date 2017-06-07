@@ -29,33 +29,33 @@ def spin_eri(eriMO, sdim):
 def responseAB(eriMO, eps, Nelec):
   
   # Get spin adapted ERIs
-  sdim = 2*len(eriMO)
-  seri = spin_eri(eriMO, sdim)
+  dim = len(eriMO)
+  #seri = spin_eri(eriMO, sdim)
   
   # Extend epsilon array for spin
-  spin_eps = np.zeros((sdim))
-  for i in range(0,sdim):
-    spin_eps[i] = eps[i//2]
-  spin_eps = np.diag(spin_eps)
+  #spin_eps = np.zeros((sdim))
+  #for i in range(0,sdim):
+  #  spin_eps[i] = eps[i//2]
+  #spin_eps = np.diag(spin_eps)
   
   # Compute A and B matrix elements 
-  A = np.zeros((Nelec*(sdim-Nelec),Nelec*(sdim-Nelec)))
-  B = np.zeros((Nelec*(sdim-Nelec),Nelec*(sdim-Nelec)))
+  A = np.zeros((Nelec/2*(dim-Nelec/2),Nelec/2*(dim-Nelec/2)))
+  B = np.zeros((Nelec/2*(dim-Nelec/2),Nelec/2*(dim-Nelec/2)))
   ia = -1
-  for i in range(0,Nelec):
-    for a in range(Nelec,sdim):
+  for i in range(0,Nelec/2):
+    for a in range(Nelec/2,dim):
       ia += 1
       jb  = -1
-      for j in range(0,Nelec):
-        for b in range(Nelec,sdim):
+      for j in range(0,Nelec/2):
+        for b in range(Nelec/2,dim):
           jb += 1
           
           # A = (e_a - e_i) d_{ij} d{ab} * < aj || ib >
-          A[ia,jb] = (spin_eps[a,a] - spin_eps[i,i]) \
-                    * (i == j) * (a == b) + seri[a,j,i,b]
+          A[ia,jb] = (eps[a] - eps[i]) \
+                    * (i == j) * (a == b) + eriMO[a,j,i,b]
           
           # B = < ab || ij >
-          B[ia,jb] = seri[a,b,i,j]
+          B[ia,jb] = eriMO[a,b,i,j]
   
   return A, B
 
