@@ -1,18 +1,18 @@
-# SCF Loop for small calculations
+# QC-SCF
 # Torin Stetina
-# May 23rd 2017
+# June 5th 2017
 
 import time
 import numpy as np
 from numpy import genfromtxt
-from scipy.linalg import eigh
+from scipy.linalg import eig, eigh
 import scipy.io
 
 # Internal imports
 from mo_transform import ao2mo
 from mp2 import mp2
 from response import*
-##import sys
+#import sys
 ##sys.path.insert(0, '/path/to/application/app/folder')
 
 
@@ -26,13 +26,13 @@ def getIntegrals(molecule):
   # T   = Kinetic energy matrix
   # S   = Overlap matrix
   # ERI = Electron-Electron repulsion tensor
-  dir = 'test_systems/' + molecule
+  direc = 'test_systems/' + molecule
 
-  Vnn = genfromtxt('./' + dir + '/Vnn.dat',dtype=None)
-  Vne = genfromtxt('./' + dir + '/Vne.dat',dtype=None)
-  T   = genfromtxt('./' + dir + '/T.dat',dtype=None)
-  S   = genfromtxt('./' + dir + '/S.dat',dtype=None)
-  ERI = scipy.io.loadmat(dir + '/ERI.mat', squeeze_me=False) 
+  Vnn = genfromtxt('./' + direc + '/Vnn.dat',dtype=None)
+  Vne = genfromtxt('./' + direc + '/Vne.dat',dtype=None)
+  T   = genfromtxt('./' + direc + '/T.dat',dtype=None)
+  S   = genfromtxt('./' + direc + '/S.dat',dtype=None)
+  ERI = scipy.io.loadmat( direc + '/ERI.mat', squeeze_me=False) 
   return Vnn, Vne, T, S, ERI['ERI']
 
 
@@ -61,7 +61,7 @@ mol, Nelec, name, basis = 'HeHplus_STO3G', 2, 'HeH+', 'STO-3G'
 
 
 # Define number of MOs
-nMOs = Nelec // 2 # RHF
+nMOs = Nelec //2  # RHF
 
 # Get integrals from files
 Vnn, Vne, T, S, ERI = getIntegrals(mol)
@@ -76,32 +76,37 @@ h = T + Vne
 F = h
 P = np.zeros((dim,dim))
 
+# Form transformation matrix
+s, Y = eigh(S)
+s = np.diag(s**(-0.5))
+X = np.dot(Y, np.dot(s, Y.T))
+
 # Initialize variables
-Etot = 0
 delta = 1.0
 conver = 1.0e-8
 count = 0
 
-
 # Start main SCF loop
-while delta > conver:
+while delta > conver and count < 500:
   count += 1
   E0 = 0
   Vee = np.zeros((dim,dim))
-  
   for m in range(0,dim):
     for n in range(0,dim):
       for k in range(0,dim):
         for l in range(0,dim):
           Vee[m,n] += P[k,l] * (ERI[m,n,l,k]- 0.5*ERI[m,k,l,n])
-      E0 += 0.5 * P[m,n] * (2*h[m,n] + Vee[m,n])
-      
+      E0 += 0.5 * P[m,n] * (2*h[m,n] + Vee[m,n])  
+  E0 += Vnn
+
   # Update Fock
   F = h + Vee
-
-  # Solve Roothan-Hall (Generalized eigen)
-  eps, C = eigh(F, S)
-
+ 
+  # Orthonormalize Fock
+  F_p = np.dot(X.T,np.dot(F, X))
+  eps, C_p = eigh(F_p)
+  C = np.dot(X, C_p)
+  
   # Normalize C
   norm = np.sqrt(np.diag( np.dot(np.dot(np.transpose(C),S),C) ))
   for i in range(0,dim):
@@ -114,10 +119,6 @@ while delta > conver:
   # Compute change in density matrix
   delta = deltaP(P, P_old)
   
-  # Update Energy
-  Etot = E0 + Vnn 
-
-
 
 elapsed_time = time.time() - start_time
 
@@ -127,7 +128,7 @@ print '~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ '
 print '                   R e s u l t s            \n'
 print 'Molecule: ' + name 
 print 'Basis: ' + basis
-print 'E(SCF) = ' + str(Etot) + ' a.u.'
+print 'E(SCF) = ' + str(E0) + ' a.u.'
 print 'SCF iterations: ' + str(count)
 print 'Elapsed time: ' + str(elapsed_time) + ' sec'
 print ''
@@ -138,11 +139,11 @@ print '~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ '
 print ''
 
 # Convert AO to MO orbital basis
-print '-------------------------'
-eriMO = ao2mo(ERI, C)
-#responseAB(eriMO, eps, Nelec)
-TDHF(eriMO, eps, Nelec)
-print '-------------------------'
+#print '-------------------------'
+#eriMO = ao2mo(ERI, C)
+#print responseAB(eriMO, eps, Nelec)
+#print TDHF(eriMO, eps, Nelec)
+#print '-------------------------'
 
 
 
