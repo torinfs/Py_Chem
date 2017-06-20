@@ -51,7 +51,7 @@ def getOVfvector(F, Nelec, dim):
   for i in range(0,Nelec/2):
     for a in range(0, dim - (Nelec/2)):
       ia += 1
-      f[ia] = (2**(0.5))*F_ov[i,a]
+      f[ia] = F_ov[i,a] #*(2**(0.5))
   
   return f
       
@@ -90,6 +90,7 @@ h = T + Vne
 # Set up initial Fock with core guess, and density at 0
 F = h
 P = np.zeros((dim,dim))
+C = np.zeros((dim,dim))
 
 # Form transformation matrix
 s, Y = eigh(S)
@@ -98,11 +99,11 @@ X = np.dot(Y, np.dot(s, Y.T))
 
 # Initialize variables
 delta = 1.0
-conver = 1.0e-8
+conver = 1.0e-10
 count = 0
 
 # Start main SCF loop
-while delta > conver and count < 500:
+while delta > conver and count < 50:
   count += 1
   E0 = 0
   Vee = np.zeros((dim,dim))
@@ -124,48 +125,50 @@ while delta > conver and count < 500:
   F_p = np.dot(X.T,np.dot(F, X))
   #print "SCFIteration = ", count
   #print "Fock (OAO) \n", F_p
+  
+  F_mo = np.dot(C.T, np.dot(F, C))
+
   if count == 1: 
     eps, C_p = eigh(F_p)
     C = np.dot(X, C_p)
   
   # QC step
-  if count > 1:
-    f      = getOVfvector(F_p, Nelec, dim)
-    print "f = \n", f
-    eriMO  = ao2mo(ERI, C_p)
+  elif count > 1:
+    f      = getOVfvector(F_mo, Nelec, dim)
+    eriMO  = ao2mo(ERI, C)
     A, B   = responseAB(eriMO, eps, Nelec)
     EI     = E0 * np.identity(len(A))
     NO     = Nelec/2
     NV     = dim-Nelec/2
     
+    # Build block matrix
     QC_M       = np.zeros((1+NO*NV,1+NO*NV))   
     QC_M[0,0]  = E0
     QC_M[0,1:] = f
     QC_M[1:,0] = f.T
-    QC_M[1:,1:]= EI+A+B
- 
-    #QC_M   = np.vstack([np.hstack([E0,f.T]), np.hstack([f,EI+A+B])])
-    #top = np.insert(f, 0, E0)
-    #bottom = np.c_[f.T ,A+B]
-    #print "top = \n", top
-    #print "bottom = \n", bottom
-    #print "A+B = \n", A+B #NEED RESTRICTED A and B matrices
-    # FACTOR OF 2 ADDED INTO getOVfvector()
+    QC_M[1:,1:]= EI+A+B #AB MATRIX BUILDER IS OFF
+    
+    print 'QC_M: \n', QC_M
     e_qc, D = eigh(QC_M)
     K = np.zeros((dim, dim))
     ia = -1
     for i in range(0, NO):
       for a in range(NO, dim): 
         ia += 1
-        K[i,a] =  D[ia+1,0]
-    K = (K - np.transpose(K))
-    U = expm(K)
-    C_p = np.dot(C_p, U)
-    C = np.dot(X, C_p)
+        K[i,a] =  D[ia,0]
+    
+    
+    print 'D = \n', D
+    print 'e = \n', e_qc
+    K = (-K + K.T)
+    print 'K = \n', K
+    U = expm(0.01*K)
+    C = np.dot(C, U)
+    #C_p = np.dot(C_p, U)
+    #C = np.dot(X, C_p)
 
-#   print QC_M.size
 
-  
+    print 'Energy: ',e_qc[0]
   
   # Normalize C
   norm = np.sqrt(np.diag( np.dot(np.dot(np.transpose(C),S),C) ))
@@ -174,7 +177,7 @@ while delta > conver and count < 500:
   
   # Update Density Matrix
   P_old = P   
-  P = 2.0 * np.dot(C[:,0:nMOs],np.transpose(C[:,0:nMOs]))
+  P = 2.0 * np.dot(C[:,0:nMOs], C[:,0:nMOs].T)
   
   # Compute change in density matrix
   delta = deltaP(P, P_old)
@@ -195,7 +198,7 @@ print 'Elapsed time: ' + str(elapsed_time) + ' sec'
 print ''
 print 'Fock Matrix = \n' + np.array_str(F)
 print 'Density Matrix = \n' + np.array_str(P)
-print 'Orbital Energies = \n' + str(eps) + '\n'
+#print 'Orbital Energies = \n' + str(e_qc) + '\n'
 print '~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ '
 print ''
 

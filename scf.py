@@ -75,6 +75,7 @@ h = T + Vne
 # Set up initial Fock with core guess, and density at 0
 F = h
 P = np.zeros((dim,dim))
+C = np.zeros((dim,dim))
 
 # Form transformation matrix
 s, Y = eigh(S)
@@ -83,11 +84,11 @@ X = np.dot(Y, np.dot(s, Y.T))
 
 # Initialize variables
 delta = 1.0
-conver = 1.0e-8
+conver = 1.0e-10
 count = 0
 
 # Start main SCF loop
-while delta > conver and count < 500:
+while delta > conver and count < 256:
   count += 1
   E0 = 0
   Vee = np.zeros((dim,dim))
@@ -102,6 +103,7 @@ while delta > conver and count < 500:
   # Update Fock
   F = h + Vee
  
+  print np.dot(C.T, np.dot(F, C))
   # Orthonormalize Fock
   F_p = np.dot(X.T,np.dot(F, X))
   eps, C_p = eigh(F_p)
