@@ -103,14 +103,13 @@ while delta > conver and count < 256:
   # Update Fock
   F = h + Vee
  
-  print np.dot(C.T, np.dot(F, C))
   # Orthonormalize Fock
   F_p = np.dot(X.T,np.dot(F, X))
   eps, C_p = eigh(F_p)
   C = np.dot(X, C_p)
   
   # Normalize C
-  norm = np.sqrt(np.diag( np.dot(np.dot(np.transpose(C),S),C) ))
+  norm = np.sqrt(np.diag(np.dot(np.dot(np.transpose(C),S),C) ))
   for i in range(0,dim):
     C[:,i] = C[:,i]/norm[i]
   
@@ -142,9 +141,10 @@ print ''
 
 # Convert AO to MO orbital basis
 #print '-------------------------'
-#eriMO = ao2mo(ERI, C)
+eriMO = ao2mo(ERI, C)
+mp2(eriMO, eps, Nelec)
 #print responseAB(eriMO, eps, Nelec)
-#print TDHF(eriMO, eps, Nelec)
+TDHF(eriMO, eps, Nelec)
 #print '-------------------------'
 
 

@@ -141,6 +141,7 @@ while delta > conver and count < 50:
     NO     = Nelec/2
     NV     = dim-Nelec/2
     
+    '''
     # Build block matrix
     QC_M       = np.zeros((1+NO*NV,1+NO*NV))   
     QC_M[0,0]  = E0
@@ -148,27 +149,32 @@ while delta > conver and count < 50:
     QC_M[1:,0] = f.T
     QC_M[1:,1:]= EI+A+B #AB MATRIX BUILDER IS OFF
     
+
     print 'QC_M: \n', QC_M
     e_qc, D = eigh(QC_M)
+    '''
+
+    D = np.linalg.solve(A+B,f)
+    print D
     K = np.zeros((dim, dim))
     ia = -1
     for i in range(0, NO):
       for a in range(NO, dim): 
         ia += 1
-        K[i,a] =  D[ia,0]
+        K[i,a] =  D[ia]
     
     
-    print 'D = \n', D
-    print 'e = \n', e_qc
+    #print 'D = \n', D
+    #print 'e = \n', e_qc
     K = (-K + K.T)
-    print 'K = \n', K
-    U = expm(0.01*K)
+    #print 'K = \n', K
+    U = expm(K)
     C = np.dot(C, U)
     #C_p = np.dot(C_p, U)
     #C = np.dot(X, C_p)
 
 
-    print 'Energy: ',e_qc[0]
+    #print 'Energy: ',e_qc[0]
   
   # Normalize C
   norm = np.sqrt(np.diag( np.dot(np.dot(np.transpose(C),S),C) ))
