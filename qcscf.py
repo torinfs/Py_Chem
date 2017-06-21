@@ -66,9 +66,9 @@ start_time = time.time()
 
 ## Test Molecules
 #mol, Nelec, name, basis = 'H2_STO3G', 2, 'H2', 'STO-3G'
-mol, Nelec, name, basis = 'HeHplus_STO3G', 2, 'HeH+', 'STO-3G'
+#mol, Nelec, name, basis = 'HeHplus_STO3G', 2, 'HeH+', 'STO-3G'
 #mol, Nelec, name, basis = 'CO_STO3G', 14, 'CO', 'STO-3G' 
-#mol, Nelec, name, basis = 'H2O_STO3G', 10, 'Water', 'STO-3G'
+mol, Nelec, name, basis = 'H2O_STO3G', 10, 'Water', 'STO-3G'
 #mol, Nelec, name, basis = 'Methanol_STO3G', 18, 'Methanol', 'STO-3G'
 
 ######################
@@ -136,6 +136,7 @@ while delta > conver and count < 50:
   elif count > 1:
     f      = getOVfvector(F_mo, Nelec, dim)
     eriMO  = ao2mo(ERI, C)
+    eps    = np.diag(F_mo)
     A, B   = responseAB(eriMO, eps, Nelec)
     EI     = E0 * np.identity(len(A))
     NO     = Nelec/2
@@ -168,7 +169,7 @@ while delta > conver and count < 50:
     #print 'e = \n', e_qc
     K = (-K + K.T)
     #print 'K = \n', K
-    U = expm(K)
+    U = expm(-K)
     C = np.dot(C, U)
     #C_p = np.dot(C_p, U)
     #C = np.dot(X, C_p)
