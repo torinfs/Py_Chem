@@ -54,12 +54,12 @@ def responseAB(eriMO, eps, Nelec):
           # < aj || ib > = < aj | ib > - < aj | bi >
           #              = ( ai | jb ) - ( ab | ji ) 
           A[ia,jb] = (eps[a] - eps[i]) \
-                    * (i == j) * (a == b) + eriMO[a,i,j,b] - eriMO[a,b,j,i]
+                    * (i == j) * (a == b) + 2*eriMO[a,i,j,b] - eriMO[a,b,j,i]
           
           # B = < ab || ij >
           # < ab || ij > = < ab | ij > - < ab | ji >
           #              = ( ai | bj ) - ( aj | bi )
-          B[ia,jb] = eriMO[a,i,b,j] - eriMO[a,j,b,i]
+          B[ia,jb] = 2*eriMO[a,i,b,j] - eriMO[a,j,b,i]
   
   return A, B
   '''
@@ -99,7 +99,8 @@ def TDHF(eriMO, eps, Nelec):
   print 'Excitation Energies (TDHF) = \n'
   for i in range(len(E_td)):
     if E_td[i] > 0.00:
-      print E_td[i], 'a.u.'      
+      #print E_td[i], 'a.u.' 
+      print 27.211396132*E_td[i], 'eV' 
 
 
 
