@@ -51,9 +51,9 @@ start_time = time.time()
 
 ## Test Molecules
 #mol, Nelec, name, basis = 'H2_STO3G', 2, 'H2', 'STO-3G'
-mol, Nelec, name, basis = 'HeHplus_STO3G', 2, 'HeH+', 'STO-3G'
+#mol, Nelec, name, basis = 'HeHplus_STO3G', 2, 'HeH+', 'STO-3G'
 #mol, Nelec, name, basis = 'CO_STO3G', 14, 'CO', 'STO-3G' 
-#mol, Nelec, name, basis = 'H2O_STO3G', 10, 'Water', 'STO-3G'
+mol, Nelec, name, basis = 'H2O_STO3G', 10, 'Water', 'STO-3G'
 #mol, Nelec, name, basis = 'Methanol_STO3G', 18, 'Methanol', 'STO-3G'
 
 ######################
@@ -144,7 +144,7 @@ print ''
 eriMO = ao2mo(ERI, C)
 #mp2(eriMO, eps, Nelec)
 #print responseAB(eriMO, eps, Nelec)
-TDHF(eriMO, eps, Nelec, True)
+TDHF(eriMO, eps, Nelec, False)
 #print '-------------------------'
 
 
