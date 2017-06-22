@@ -66,9 +66,9 @@ start_time = time.time()
 
 ## Test Molecules
 #mol, Nelec, name, basis = 'H2_STO3G', 2, 'H2', 'STO-3G'
-#mol, Nelec, name, basis = 'HeHplus_STO3G', 2, 'HeH+', 'STO-3G'
+mol, Nelec, name, basis = 'HeHplus_STO3G', 2, 'HeH+', 'STO-3G'
 #mol, Nelec, name, basis = 'CO_STO3G', 14, 'CO', 'STO-3G' 
-mol, Nelec, name, basis = 'H2O_STO3G', 10, 'Water', 'STO-3G'
+#mol, Nelec, name, basis = 'H2O_STO3G', 10, 'Water', 'STO-3G'
 #mol, Nelec, name, basis = 'Methanol_STO3G', 18, 'Methanol', 'STO-3G'
 
 ######################
@@ -118,64 +118,40 @@ while delta > conver and count < 50:
   # Update Fock
   F = h + Vee
 
-  # Solve Roothan-Hall (Generalized eigen)
-  # eps, C = eigh(F, S)
- 
   # Orthonormalize Fock
   F_p = np.dot(X.T,np.dot(F, X))
-  #print "SCFIteration = ", count
-  #print "Fock (OAO) \n", F_p
-  
   F_mo = np.dot(C.T, np.dot(F, C))
 
   if count == 1: 
     eps, C_p = eigh(F_p)
     C = np.dot(X, C_p)
   
-  # QC step
+  # - Newton-Raphson Quadratic Convergence -
   elif count > 1:
     f      = getOVfvector(F_mo, Nelec, dim)
     eriMO  = ao2mo(ERI, C)
     eps    = np.diag(F_mo)
-    A, B   = responseAB(eriMO, eps, Nelec)
+    A, B   = responseAB(eriMO, eps, Nelec, True)
     EI     = E0 * np.identity(len(A))
     NO     = Nelec/2
     NV     = dim-Nelec/2
     
-    '''
-    # Build block matrix
-    QC_M       = np.zeros((1+NO*NV,1+NO*NV))   
-    QC_M[0,0]  = E0
-    QC_M[0,1:] = f
-    QC_M[1:,0] = f.T
-    QC_M[1:,1:]= EI+A+B #AB MATRIX BUILDER IS OFF
-    
-
-    print 'QC_M: \n', QC_M
-    e_qc, D = eigh(QC_M)
-    '''
-
+    # Solve Ax = b
     D = np.linalg.solve(A+B,f)
-    print D
+    
+    # Create orbital rotation matrix K
     K = np.zeros((dim, dim))
     ia = -1
     for i in range(0, NO):
       for a in range(NO, dim): 
         ia += 1
         K[i,a] =  D[ia]
-    
-    
-    #print 'D = \n', D
-    #print 'e = \n', e_qc
     K = (-K + K.T)
-    #print 'K = \n', K
     U = expm(-K)
+
+    # Update MO coeffs
     C = np.dot(C, U)
-    #C_p = np.dot(C_p, U)
-    #C = np.dot(X, C_p)
 
-
-    #print 'Energy: ',e_qc[0]
   
   # Normalize C
   norm = np.sqrt(np.diag( np.dot(np.dot(np.transpose(C),S),C) ))
@@ -205,7 +181,7 @@ print 'Elapsed time: ' + str(elapsed_time) + ' sec'
 print ''
 print 'Fock Matrix = \n' + np.array_str(F)
 print 'Density Matrix = \n' + np.array_str(P)
-#print 'Orbital Energies = \n' + str(e_qc) + '\n'
+print 'Orbital Energies = \n' + str(eps) + '\n'
 print '~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ '
 print ''
 
