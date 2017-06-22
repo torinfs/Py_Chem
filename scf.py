@@ -140,9 +140,9 @@ print ''
 
 # Convert AO to MO orbital basis
 #print '-------------------------'
-#eriMO = ao2mo(ERI, C)
+eriMO = ao2mo(ERI, C)
 #print responseAB(eriMO, eps, Nelec)
-#print TDHF(eriMO, eps, Nelec)
+print TDHF(eriMO, eps, Nelec)
 #print '-------------------------'
 
 
