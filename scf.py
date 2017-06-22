@@ -1,4 +1,4 @@
-# QC-SCF
+# Self-Consistent Field Main Script
 # Torin Stetina
 # June 5th 2017
 
@@ -51,9 +51,9 @@ start_time = time.time()
 
 ## Test Molecules
 #mol, Nelec, name, basis = 'H2_STO3G', 2, 'H2', 'STO-3G'
-mol, Nelec, name, basis = 'HeHplus_STO3G', 2, 'HeH+', 'STO-3G'
+#mol, Nelec, name, basis = 'HeHplus_STO3G', 2, 'HeH+', 'STO-3G'
 #mol, Nelec, name, basis = 'CO_STO3G', 14, 'CO', 'STO-3G' 
-#mol, Nelec, name, basis = 'H2O_STO3G', 10, 'Water', 'STO-3G'
+mol, Nelec, name, basis = 'H2O_STO3G', 10, 'Water', 'STO-3G'
 #mol, Nelec, name, basis = 'Methanol_STO3G', 18, 'Methanol', 'STO-3G'
 
 ######################
@@ -75,6 +75,12 @@ h = T + Vne
 # Set up initial Fock with core guess, and density at 0
 F = h
 P = np.zeros((dim,dim))
+C = np.zeros((dim,dim))
+
+# Form transformation matrix
+s, Y = eigh(S)
+s = np.diag(s**(-0.5))
+X = np.dot(Y, np.dot(s, Y.T))
 
 # Form transformation matrix
 s, Y = eigh(S)
@@ -83,11 +89,11 @@ X = np.dot(Y, np.dot(s, Y.T))
 
 # Initialize variables
 delta = 1.0
-conver = 1.0e-8
+conver = 1.0e-10
 count = 0
 
 # Start main SCF loop
-while delta > conver and count < 500:
+while delta > conver and count < 256:
   count += 1
   E0 = 0
   Vee = np.zeros((dim,dim))
@@ -108,7 +114,7 @@ while delta > conver and count < 500:
   C = np.dot(X, C_p)
   
   # Normalize C
-  norm = np.sqrt(np.diag( np.dot(np.dot(np.transpose(C),S),C) ))
+  norm = np.sqrt(np.diag(np.dot(np.dot(np.transpose(C),S),C) ))
   for i in range(0,dim):
     C[:,i] = C[:,i]/norm[i]
   
@@ -141,8 +147,9 @@ print ''
 # Convert AO to MO orbital basis
 #print '-------------------------'
 eriMO = ao2mo(ERI, C)
+#mp2(eriMO, eps, Nelec)
 #print responseAB(eriMO, eps, Nelec)
-print TDHF(eriMO, eps, Nelec)
+TDHF(eriMO, eps, Nelec, False)
 #print '-------------------------'
 
 
