@@ -1,5 +1,5 @@
 Here is the additional information on each test system included in the directory
-Updated: June 1st, 2017
+Updated: June 26th, 2017
 
 
 // H2_STO3G //
@@ -45,3 +45,11 @@ Updated: June 1st, 2017
 1    0.232533695798665   0.572446443654854  -0.469116126436166
 8   -0.026490611166140  -0.406401218490821   0.000000000000000
 1    0.482727093471809  -0.532006721215452   0.000000000000000
+
+
+// Li_STO3G // 
+
+- Geometry ( atomic weight | x y z coordinates ):
+3    0.0  0.0  0.0
+
+
