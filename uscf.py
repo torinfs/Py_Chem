@@ -52,8 +52,9 @@ start_time = time.time()
 ## Test Molecules
 #mol, Nelec, name, basis = 'H2_STO3G', 2, 'H2', 'STO-3G'
 #mol, Nelec, name, basis, mult = 'HeHplus_STO3G', 2, 'HeH+', 'STO-3G', 0
-#mol, Nelec, name, basis, mult = 'H2O_STO3G', 10, 'Water', 'STO-3G', 0
-mol, Nelec, name, basis, mult = 'Li_STO3G', 3, 'Lithium', 'STO-3G', 2
+#mol, Nelec, name, basis, mult = 'H2O_STO3G', 10, 'Water', 'STO-3G', 1
+#mol, Nelec, name, basis, mult = 'Li_STO3G', 3, 'Lithium', 'STO-3G', 2
+mol, Nelec, name, basis, mult = 'O2_STO3G', 16, 'Oxygen', 'STO-3G', 3
 
 ######################
 
@@ -86,15 +87,11 @@ delta  = 1.0
 conver = 1.0e-10
 count  = 0
 
-if mult > 0:
-  Na   = Nelec//2 + mult-1 
-else:
-  Na   = Nelec//2
-Nb     = Nelec//2
-print Na, Nb
+Na = Nelec//2 + mult-1 
+Nb = Nelec//2
 
 # Start main SCF loop
-while delta > conver and count < 100:
+while delta > conver and count < 300:
   count += 1
   E0 = 0
   Vee_a = np.zeros((dim,dim))
@@ -112,7 +109,6 @@ while delta > conver and count < 100:
                                                 + P_b[m,n]*(h[m,n] + Vee_b[m,n]))
   
   E0 += Vnn
-  print E0
 
   # Update Fock alpha and beta
   F_a = h + Vee_a
@@ -140,7 +136,20 @@ while delta > conver and count < 100:
   
   # Compute change in density matrix
   delta = deltaP((P_a + P_b), P_old)
-  
+
+
+
+# Get Spin Contamination
+spin2_exact = ((mult-1)/2.0) * ((mult-1)/2.0 + 1)
+spin_overlap = 0.0
+print C_a, '\n'
+print C_b, '\n'
+for i in range(0,Na):
+  for j in range(Na+1,Nelec):
+    spin_overlap += abs(np.inner(C_a[:,i], C_b[:,j-Na+1]))**2
+
+spin2_tot = spin2_exact + Nb - spin_overlap
+
 
 elapsed_time = time.time() - start_time
 
@@ -160,6 +169,8 @@ print 'Density Matrix (alpha) = \n' + np.array_str(P_a)
 print 'Density Matrix (beta) = \n' + np.array_str(P_b)
 print 'Orbital Energies (alpha) = \n' + str(eps_a) + '\n'
 print 'Orbital Energies (beta) = \n' + str(eps_b) + '\n'
+print spin2_exact, Nb, spin_overlap, '\n'
+print '<S^2>_UHF =', spin2_tot, '\n'
 print '~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ '
 print ''
 
