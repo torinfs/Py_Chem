@@ -10,7 +10,7 @@ import scipy.io
 
 # Internal imports
 from mo_transform import ao2mo
-from mp2 import mp2
+from mp2 import*
 from response import*
 #import sys
 ##sys.path.insert(0, '/path/to/application/app/folder')
@@ -70,8 +70,8 @@ start_time = time.time()
 #mol, Nelec, name, basis, mult = 'CO_STO3G', 14, 'CO', 'STO-3G', 1 
 #mol, Nelec, name, basis, mult = 'H2O_STO3G', 10, 'Water', 'STO-3G', 1
 #mol, Nelec, name, basis, mult = 'Methanol_STO3G', 18, 'Methanol', 'STO-3G', 1
-#mol, Nelec, name, basis, mult = 'Li_STO3G', 3, 'Lithium', 'STO-3G', 2
-mol, Nelec, name, basis, mult = 'O2_STO3G', 16, 'Oxygen', 'STO-3G', 3 
+mol, Nelec, name, basis, mult = 'Li_STO3G', 3, 'Lithium', 'STO-3G', 2
+#mol, Nelec, name, basis, mult = 'O2_STO3G', 16, 'Oxygen', 'STO-3G', 3
 
 ######################
 
@@ -102,7 +102,6 @@ X = np.dot(Y, np.dot(s, Y.T))
 delta  = 1.0
 conver = 1.0e-08
 count  = 0
-
 
 # Start main SCF loop
 while delta > conver and count < 100:
@@ -189,10 +188,10 @@ print ''
 
 # Convert AO to MO orbital basis
 #print '-------------------------'
-#eriMO = ao2mo(ERI, C)
+eriMO_u = ao2mo(ERI, [C_a, C_b], False)
 #mp2(eriMO, eps, Nelec)
-#print responseAB(eriMO, eps, Nelec)
-#TDHF(eriMO, eps, Nelec, False)
+#print responseAB_UHF(eriMO, [eps_a, eps_b], Nelec)
+TDHF(eriMO_u, [eps_a, eps_b], [Na, Nb], False)
 #print '-------------------------'
 
 
