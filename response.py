@@ -7,7 +7,6 @@
 
 import numpy as np
 
-
 def spin_eri(eriMO, sdim):
 
   # ** Original algorithm based on function
@@ -35,7 +34,6 @@ def responseAB_RHF(eriMO, eps, Nelec, S):
   # eriMO = MO transformed ERIs
   # eps = orbital energies
   # Nelec = # of electrons
-
 
   dim = len(eriMO)
 
@@ -134,10 +132,12 @@ def responseAB_UHF(eriMO, eps, Nelec):
 
       block_A.append(A)   
       block_B.append(B)
-  
+
+  # Create full A and B block matrices
   A = np.bmat([[block_A[0], block_A[1]],[block_A[2], block_A[3]]])
   B = np.bmat([[block_B[0], block_B[1]],[block_B[2], block_B[3]]])
   return A, B
+
 
 def TDHF(eriMO, eps, Nelec, R):
   
