@@ -51,7 +51,7 @@ def getOVfvector(F, Nelec, dim):
   for i in range(0,Nelec/2):
     for a in range(0, dim - (Nelec/2)):
       ia += 1
-      f[ia] = F_ov[i,a] #*(2**(0.5))
+      f[ia] = F_ov[i,a]
   
   return f
       
@@ -129,9 +129,9 @@ while delta > conver and count < 50:
   # - Newton-Raphson Quadratic Convergence -
   elif count > 1:
     f      = getOVfvector(F_mo, Nelec, dim)
-    eriMO  = ao2mo(ERI, C)
+    eriMO  = ao2mo(ERI, C, True)
     eps    = np.diag(F_mo)
-    A, B   = responseAB(eriMO, eps, Nelec, True)
+    A, B   = responseAB_RHF(eriMO, eps, Nelec, True)
     EI     = E0 * np.identity(len(A))
     NO     = Nelec/2
     NV     = dim-Nelec/2
