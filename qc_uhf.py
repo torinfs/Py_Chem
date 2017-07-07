@@ -5,6 +5,7 @@
 import time
 import numpy as np
 from numpy import genfromtxt
+from numpy import linalg as LA
 from scipy.linalg import eig, eigh, inv, expm
 import scipy.io
 
@@ -12,7 +13,7 @@ import scipy.io
 from mo_transform import ao2mo
 from mp2 import*
 from response import*
-#import sys
+import sys
 ##sys.path.insert(0, '/path/to/application/app/folder')
 
 
@@ -56,6 +57,10 @@ def deltaP(P,P_old):
   return max(abs(P.flatten()-P_old.flatten()))
 
 
+def is_pos_def(x):
+  return np.all(np.linalg.eigvals(x) > 0)
+
+
 def getOVfvector(F, Nelec, dim):
   # Get occupied-virtual block of Fock matrix,
   # then convert into vector for QC eigenvalue problem
@@ -83,9 +88,9 @@ start_time = time.time()
 #mol, Nelec, name, basis, mult = 'H2_STO3G', 2, 'H2', 'STO-3G', 1
 #mol, Nelec, name, basis, mult = 'HeHplus_STO3G', 2, 'HeH+', 'STO-3G', 1
 #mol, Nelec, name, basis, mult = 'CO_STO3G', 14, 'CO', 'STO-3G', 1 
-mol, Nelec, name, basis, mult = 'H2O_STO3G', 10, 'Water', 'STO-3G', 3
+#mol, Nelec, name, basis, mult = 'H2O_STO3G', 10, 'Water', 'STO-3G', 3
 #mol, Nelec, name, basis, mult = 'Methanol_STO3G', 18, 'Methanol', 'STO-3G', 1
-#mol, Nelec, name, basis, mult = 'Li_STO3G', 3, 'Lithium', 'STO-3G', 2
+mol, Nelec, name, basis, mult = 'Li_STO3G', 3, 'Lithium', 'STO-3G', 2
 #mol, Nelec, name, basis, mult = 'O2_STO3G', 16, 'Oxygen', 'STO-3G', 3
 
 ######################
@@ -143,91 +148,84 @@ while delta > conver and count < 100:
   F_a = h + Vee_a
   F_b = h + Vee_b
  
-  # Orthonormalize Fock alpha and beta
-  F_a_oao = np.dot(X.T,np.dot(F_a, X))
-  F_b_oao = np.dot(X.T,np.dot(F_b, X))
-  
   # Fock mo basis
   F_a_mo = np.dot(C_a.T, np.dot(F_a, C_a))
-  F_b_mo = np.dot(C_b.T, np.dot(F_b, C_b))
-# print "FA (MO) \n", F_a_mo
-# print "FB (MO) \n", F_b_mo
-  
-  
-  # - Newton-Raphson Quadratic Convergence -
+  F_b_mo = np.dot(C_b.T, np.dot(F_b, C_b))  
+
+
+  # ---  Quadratic Convergence  ---
 
   if count == 1: # Bypass first loop
+
+    # Orthonormalize Fock alpha and beta
+    F_a_oao = np.dot(X.T,np.dot(F_a, X))
+    F_b_oao = np.dot(X.T,np.dot(F_b, X))
     eps_a, C_a_oao = eigh(F_a_oao)
     eps_b, C_b_oao = eigh(F_b_oao)
     C_a = np.dot(X, C_a_oao)
     C_b = np.dot(X, C_b_oao)
   
   elif count > 1:
-    f_a      = getOVfvector(F_a_mo, Na, dim)
-    f_b      = getOVfvector(F_b_mo, Nb, dim)
-    eriMO    = ao2mo(ERI, [C_a, C_b], False)
-    eps_a    = np.diag(F_a_mo)
-    eps_b    = np.diag(F_b_mo)
-    A, B     = responseAB_UHF(eriMO, [eps_a,eps_b],[Na,Nb])
-    EI       = E0 * np.identity(len(A))
-  
-    # Solve Ax = b
-    f_ab = np.append(f_a,f_b)
-    D = np.linalg.solve(A+B,f_ab)
-    D_a = D[:Na*(dim-Na)]
-    D_b = D[Na*(dim-Na):]
-#   print "Na = ", Na
-#   print "Nb = ", Nb
-#   print "dim = ", dim
-#   print "f_a \n", f_a
-#   print "D_a \n", D_a
-#   print "f_b \n", f_b
-#   print "D_b \n", D_b
+    f_a   = getOVfvector(F_a_mo, Na, dim)
+    f_b   = getOVfvector(F_b_mo, Nb, dim)
+    deriv = max(LA.norm(f_a),LA.norm(f_b))
+
+    # Do Newton-Raphson step
+    if (deriv < 1e-2):
+      eriMO    = ao2mo(ERI, [C_a, C_b], False)
+      eps_a    = np.diag(F_a_mo)
+      eps_b    = np.diag(F_b_mo)
+      A, B     = responseAB_UHF(eriMO, [eps_a,eps_b],[Na,Nb])
+      M        = np.bmat([[A, B],[B, A]])
+      #print is_pos_def(M)
+
+      # Solve Ax = b
+      f_ab = np.append(f_a,f_b)
+      D = np.linalg.solve(A+B,f_ab)
+      D_a = D[:Na*(dim-Na)]
+      D_b = D[Na*(dim-Na):]
+
+    # Do steepest descent
+    else:
+      D_a, D_b = f_a, f_b
+
+    # Do line search along search direction
+
+
     
-    # Create orbital rotation matrix K
+    # Create orbital rotation matrix K and U
     K_a = np.zeros((dim, dim))
     K_b = np.zeros((dim, dim))
-
     ia = -1
     for i in range(0, Na):
-      for a in range(0,dim-Na): 
+      for a in range(Na,dim): 
         ia += 1
-#       print 'D_a: ',D_a,'\n','D_elem: ', D_a[ia]
         K_a[i,a] =  D_a[ia]
     ia = -1
     for i in range(0, Nb):
-      for a in range(0,dim-Nb): 
+      for a in range(Nb,dim): 
         ia += 1
         K_b[i,a] =  D_b[ia]
-
     K_a = (-K_a + K_a.T)
     K_b = (-K_b + K_b.T)
     U_a = expm(-K_a)
     U_b = expm(-K_b)
-#   print "Ua \n", U_a
-    print "Ub \n", U_b
 
-#   print "before transform Ca \n", C_a
-    print "before transform Cb \n", C_b
     # Update MO coeffs
     C_a = np.dot(C_a, U_a)
     C_b = np.dot(C_b, U_b)
-#   print "after transform Ca \n", C_a
-    print "after transform Cb \n", C_b
 
   # Normalize C
-# norm_a = np.sqrt(np.diag(np.dot(np.dot(np.transpose(C_a),S),C_a) ))
-# norm_b = np.sqrt(np.diag(np.dot(np.dot(np.transpose(C_b),S),C_b) ))
-# for i in range(0,dim):
-#   C_a[:,i] = C_a[:,i]/norm_a[i]
-#   C_b[:,i] = C_b[:,i]/norm_b[i]
+  norm_a = np.sqrt(np.diag(np.dot(np.dot(np.transpose(C_a),S),C_a) ))
+  norm_b = np.sqrt(np.diag(np.dot(np.dot(np.transpose(C_b),S),C_b) ))
+  for i in range(0,dim):
+    C_a[:,i] = C_a[:,i]/norm_a[i]
+    C_b[:,i] = C_b[:,i]/norm_b[i]
   
   # Update Density Matrix
-  print "old Pa \n", P_a
   P_old = P_a + P_b   
   P_a = np.dot(C_a[:,0:Na],np.transpose(C_a[:,0:Na]))
   P_b = np.dot(C_b[:,0:Nb],np.transpose(C_b[:,0:Nb]))
-  print "new Pa \n", P_a
   
   # Compute change in density matrix
   delta = deltaP((P_a + P_b), P_old)
@@ -239,8 +237,17 @@ while delta > conver and count < 100:
 Pmz = P_a - P_b
 spin_expect = 1/4.0 * ((np.trace(np.dot(Pmz,S)))**2 + 2*np.trace(np.dot(Pmz,S).dot(Pmz).dot(S)))
 
+# Final diagnolization to keep F_mo diagonal (Pseudocanonicalization)
+F_a_oao = np.dot(X.T,np.dot(F_a, X))
+F_b_oao = np.dot(X.T,np.dot(F_b, X))
+eps_a, C_a_oao = eigh(F_a_oao)
+eps_b, C_b_oao = eigh(F_b_oao)
+C_a = np.dot(X, C_a_oao)
+C_b = np.dot(X, C_b_oao)
 
 elapsed_time = time.time() - start_time
+
+
 
 ### Print results ###
 print ''
@@ -252,8 +259,8 @@ print 'Multiplicity: ' + str(mult)
 print 'E(SCF) = ' + str(E0) + ' a.u.'
 print '<S'+u'\xb2'+ '> =', spin_expect
 print 'SCF iterations: ' + str(count)
-print 'Elapsed time: ' + str(elapsed_time) + ' sec'
-print '', len(S)
+print 'Elapsed time: ' + str(elapsed_time) + ' sec\n'
+print 'MO Coeffs (alpha) = \n' + np.array_str(C_a)
 #print 'Fock Matrix (alpha) = \n' + np.array_str(F_a)
 #print 'Fock Matrix (beta) = \n' + np.array_str(F_b)
 #print 'Density Matrix (alpha) = \n' + np.array_str(P_a)
