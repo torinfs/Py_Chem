@@ -88,9 +88,9 @@ start_time = time.time()
 #mol, Nelec, name, basis, mult = 'H2_STO3G', 2, 'H2', 'STO-3G', 1
 #mol, Nelec, name, basis, mult = 'HeHplus_STO3G', 2, 'HeH+', 'STO-3G', 1
 #mol, Nelec, name, basis, mult = 'CO_STO3G', 14, 'CO', 'STO-3G', 1 
-#mol, Nelec, name, basis, mult = 'H2O_STO3G', 10, 'Water', 'STO-3G', 3
+mol, Nelec, name, basis, mult = 'H2O_STO3G', 10, 'Water', 'STO-3G', 3
 #mol, Nelec, name, basis, mult = 'Methanol_STO3G', 18, 'Methanol', 'STO-3G', 1
-mol, Nelec, name, basis, mult = 'Li_STO3G', 3, 'Lithium', 'STO-3G', 2
+#mol, Nelec, name, basis, mult = 'Li_STO3G', 3, 'Lithium', 'STO-3G', 2
 #mol, Nelec, name, basis, mult = 'O2_STO3G', 16, 'Oxygen', 'STO-3G', 3
 
 ######################
@@ -124,7 +124,7 @@ conver = 1.0e-08
 count  = 0
 
 # Start main SCF loop
-while delta > conver and count < 100:
+while delta > conver and count < 1000:
   count += 1
   EOne, ETwo, E0 = 0, 0, 0
   Vee_a = np.zeros((dim,dim))
@@ -164,6 +164,11 @@ while delta > conver and count < 100:
     eps_b, C_b_oao = eigh(F_b_oao)
     C_a = np.dot(X, C_a_oao)
     C_b = np.dot(X, C_b_oao)
+   
+    # Initialize direction vectors
+    D_a = np.array([])
+    D_b = np.array([])
+    
   
   elif count > 1:
     f_a   = getOVfvector(F_a_mo, Na, dim)
@@ -177,7 +182,6 @@ while delta > conver and count < 100:
       eps_b    = np.diag(F_b_mo)
       A, B     = responseAB_UHF(eriMO, [eps_a,eps_b],[Na,Nb])
       M        = np.bmat([[A, B],[B, A]])
-      #print is_pos_def(M)
 
       # Solve Ax = b
       f_ab = np.append(f_a,f_b)
@@ -186,13 +190,28 @@ while delta > conver and count < 100:
       D_b = D[Na*(dim-Na):]
 
     # Do steepest descent
-    else:
-      D_a, D_b = f_a, f_b
-
-    # Do line search along search direction
-
+    else: #alp = 0.0947 for triplet water
+      D_a_old, D_b_old = D_a, D_b
+      D_a, D_b, = 0.0947*f_a, 0.0947*f_b
+#      for alp in np.arange(1,0,-0.0001):
+      
+      '''
+      for alp in np.arange(0.0001,0.0001,-0.0001):
+        D_a_p = alp * D_a
+        D_b_p = alp * D_b
+        print alp
+        if (LA.norm(D_a_p) < LA.norm(D_a)) and (LA.norm(D_b_p) < LA.norm(D_b)):
+          D_a = D_a_p
+          D_b = D_b_p
+          break
+      if (LA.norm(D_a_p) < LA.norm(D_a)) and (LA.norm(D_b_p) < LA.norm(D_b)):
+        D_a = D_a_p
+        D_b = D_b_p
+        break
+      '''
 
     
+    print D_a
     # Create orbital rotation matrix K and U
     K_a = np.zeros((dim, dim))
     K_b = np.zeros((dim, dim))
