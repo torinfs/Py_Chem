@@ -51,6 +51,19 @@ def calcAlphaBeta(Nelec, mult):
   return Na, Nb
 
 
+def gaussLeg(start,end,n):
+  # Builds Gauss-Legendre grid with n points
+
+  grid    = np.zeros([n])
+  weights = np.zeros([n])
+  x, weights = np.polynomial.legendre.leggauss(n)
+  for i in range(n):
+    grid[i]    = end*x[i]/2 + end/2
+    weights[i] = (end/2)*weights[i]*np.sin(grid[i])
+
+  return grid, weights
+
+
 def deltaP(P,P_old):  
   # Calculate change in density matrix  
   return max(abs(P.flatten()-P_old.flatten()))
@@ -66,9 +79,10 @@ start_time = time.time()
 
 ## Test Molecules
 #mol, Nelec, name, basis, mult = 'H2_STO3G', 2, 'H2', 'STO-3G', 1
+mol, Nelec, name, basis, mult = 'H3_STO3G', 3, 'H3', 'STO-3G', 2
 #mol, Nelec, name, basis, mult = 'HeHplus_STO3G', 2, 'HeH+', 'STO-3G', 1
 #mol, Nelec, name, basis, mult = 'CO_STO3G', 14, 'CO', 'STO-3G', 1 
-mol, Nelec, name, basis, mult = 'H2O_STO3G', 10, 'Water', 'STO-3G', 1
+#mol, Nelec, name, basis, mult = 'H2O_STO3G', 10, 'Water', 'STO-3G', 1
 #mol, Nelec, name, basis, mult = 'Methanol_STO3G', 18, 'Methanol', 'STO-3G', 1
 #mol, Nelec, name, basis, mult = 'Li_STO3G', 3, 'Lithium', 'STO-3G', 2
 #mol, Nelec, name, basis, mult = 'O2_STO3G', 16, 'Oxygen', 'STO-3G', 3
@@ -92,6 +106,11 @@ eps_h, C_h = eigh(h)
 F_a, F_b = h, h
 P_a, P_b = np.zeros((dim,dim)), np.zeros((dim,dim))
 C_a, C_b = np.zeros((dim,dim)), np.zeros((dim,dim))
+
+# Build PHF grid
+spin = (mult - 1) * 0.5
+ngrd = 12
+grd, wgt = gaussLeg(0,np.pi,ngrd)
 
 # Form transformation matrix
 s, Y = eigh(S)
@@ -118,13 +137,9 @@ while delta > conver and count < 100:
           Vee_b[m,n] += (P_a[k,l] + P_b[k,l]) * ERI[m,n,l,k] \
                                   - P_b[k,l]  * ERI[m,k,l,n]
        
-      EOne += (P_a[m,n] + P_b[m,n])*h[m,n] 
-      ETwo += 0.5 *( P_a[m,n]*(Vee_a[m,n]) + P_b[m,n]*(Vee_b[m,n]))
-      E0   += 0.5 *((P_a[m,n] + P_b[m,n])*h[m,n] + P_a[m,n]*(h[m,n] + Vee_a[m,n])\
-                                                 + P_b[m,n]*(h[m,n] + Vee_b[m,n]))
+      E0 += 0.5 *((P_a[m,n] + P_b[m,n])*h[m,n] + P_a[m,n]*(h[m,n] + Vee_a[m,n])\
+                                               + P_b[m,n]*(h[m,n] + Vee_b[m,n]))
   
-  #print 'EOne = ', EOne
-  #print 'ETwo = ', ETwo
   E0 += Vnn
   #print 'E0', E0
 
@@ -176,7 +191,6 @@ print 'E(SCF) = ' + str(E0) + ' a.u.'
 print '<S'+u'\xb2'+ '> =', spin_expect
 print 'SCF iterations: ' + str(count)
 print 'Elapsed time: ' + str(elapsed_time) + ' sec'
-print '', len(S)
 #print 'Fock Matrix (alpha) = \n' + np.array_str(F_a)
 #print 'Fock Matrix (beta) = \n' + np.array_str(F_b)
 #print 'Density Matrix (alpha) = \n' + np.array_str(P_a)
