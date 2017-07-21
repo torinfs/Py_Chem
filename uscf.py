@@ -68,8 +68,8 @@ start_time = time.time()
 #mol, Nelec, name, basis, mult = 'H2_STO3G', 2, 'H2', 'STO-3G', 1
 #mol, Nelec, name, basis, mult = 'HeHplus_STO3G', 2, 'HeH+', 'STO-3G', 1
 #mol, Nelec, name, basis, mult = 'CO_STO3G', 14, 'CO', 'STO-3G', 1 
-mol, Nelec, name, basis, mult = 'H2O_STO3G', 10, 'Water', 'STO-3G', 3
-#mol, Nelec, name, basis, mult = 'Methanol_STO3G', 18, 'Methanol', 'STO-3G', 1
+#mol, Nelec, name, basis, mult = 'H2O_STO3G', 10, 'Water', 'STO-3G', 1
+mol, Nelec, name, basis, mult = 'Methanol_STO3G', 18, 'Methanol', 'STO-3G', 1
 #mol, Nelec, name, basis, mult = 'Li_STO3G', 3, 'Lithium', 'STO-3G', 2
 #mol, Nelec, name, basis, mult = 'O2_STO3G', 16, 'Oxygen', 'STO-3G', 3
 
@@ -151,8 +151,6 @@ while delta > conver and count < 100:
   P_old = P_a + P_b   
   P_a = np.dot(C_a[:,0:Na],np.transpose(C_a[:,0:Na]))
   P_b = np.dot(C_b[:,0:Nb],np.transpose(C_b[:,0:Nb]))
-  print 'MO Coeffs (alpha) = \n' + np.array_str(C_a)
-  print 'Density Matrix (alpha) = \n' + np.array_str(P_a)
   
   # Compute change in density matrix
   delta = deltaP((P_a + P_b), P_old)
