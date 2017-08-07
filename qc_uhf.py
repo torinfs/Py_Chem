@@ -234,7 +234,7 @@ while delta > conver and count < 1000:
           break
     
     elif doQN:
-      print 'yoy'
+      print 'here'
     
       
     # Do steepest descent (Not working)
